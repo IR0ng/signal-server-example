@@ -11,11 +11,7 @@ const port = process.env.PORT || 80
 const io = new Server<
 ClientToServerEvents,
 ServerToClientEvents
->(server, { cors: {
-  origin: 'http://localhost:3000/',
-  methods: ["GET", "POST"],
-  credentials: true
-}})
+>(server)
 
 io.engine.on("headers", (headers, req) => {
   headers["Access-Control-Allow-Origin"] = "http://localhost:3000"; // url to all
@@ -26,16 +22,16 @@ app.get('/', (req:Request, res:Response) => {
 })
 
 io.on('connection', (client) => {
-  console.log('connecting')
+  console.log('connecting', client.id)
   client.on('joinRoom', (req) => {
     const { room } = req
     client.join(room)
-    io.to(room).emit('broadcast', '有人加入了聊天室' )
+    io.to(room).emit('broadcast', `${client.id} 加入了聊天室` )
   })
 
-  client.on('connectSignaling', ({ room, candidate }) => {
-    console.log('接收資料：', candidate );
-    client.to(room).emit('connectSignaling', { room, candidate } )
+  client.on('connectSignaling', ({ room, candidate, sdp }) => {
+    console.log('接收資料：', candidate, sdp );
+    client.to(room).emit('connectSignaling', { room, candidate: candidate, sdp: sdp } )
   });
 
   client.on('disconnect', () => {

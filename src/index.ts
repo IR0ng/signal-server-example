@@ -11,7 +11,16 @@ const port = process.env.PORT || 80
 const io = new Server<
 ClientToServerEvents,
 ServerToClientEvents
->(server)
+>(server, { cors: {
+  origin: 'http://localhost:3000/',
+  methods: ["GET", "POST"],
+  credentials: true
+}})
+
+io.engine.on("headers", (headers, req) => {
+  headers["Access-Control-Allow-Origin"] = "http://localhost:3000"; // url to all
+});
+
 app.get('/', (req:Request, res:Response) => {
   res.send('Hello World!')
 })

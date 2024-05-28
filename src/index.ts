@@ -3,9 +3,10 @@ import express, { Request, Response } from 'express'
 import http from 'http'
 import { Server } from 'socket.io'
 import { ClientToServerEvents, ServerToClientEvents } from './types'
+
 const app = express()
 const server = http.createServer(app)
-const port = process.env.PORT || 3000
+const port = process.env.PORT || 80
 
 const io = new Server<
 ClientToServerEvents,
@@ -15,29 +16,22 @@ app.get('/', (req:Request, res:Response) => {
   res.send('Hello World!')
 })
 
-io.on('connection', (socket) => {
+io.on('connection', (client) => {
   console.log('connecting')
-  socket.on('joinRoom', (req) => {
-    const { roomID, userName } = req
-    socket.join(roomID)
-    io.to(roomID).emit('joinRoom', { userName, roomID })
+  client.on('joinRoom', (req) => {
+    const { room } = req
+    client.join(room)
+    io.to(room).emit('broadcast', '有人加入了聊天室' )
   })
-  socket.on('onReady', (req) => {
-    const { roomID, userName } = req
-    io.to(roomID).emit('onReady', { roomID, userName })
-  })
-  socket.on('broadcast', (req) => {
-    const { roomID } = req
-    io.to(roomID).emit('broadcast', req)
-  })
-  socket.on('start', (req) => {
-    const { roomID } = req
-    io.to(roomID).emit('start', { message: 'starting' })
-  })
-  socket.on('mora', (req) => {
-    const { roomID, mora, userName } = req
-    io.to(roomID).emit('mora', { roomID, mora, userName })
-  })
+
+  client.on('connectSignaling', ({ room, candidate }) => {
+    console.log('接收資料：', candidate );
+    client.to(room).emit('connectSignaling', { room, candidate } )
+  });
+
+  client.on('disconnect', () => {
+    console.log(`socket 用戶離開 ${client.id}`);
+  });
 })
 
 server.listen(port, () => {
